@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class JwtServiceTest {
 
-    private static final String SECRET = "test-jwt-secret-key-that-is-at-least-32-bytes-long";
+    private static final String SECRET = "test-jwt-secret-sdfdswer245ret6457yuhdgsrteyrhdgfdf";
     private static final long EXPIRATION_MS = 3_600_000L;
 
     private JwtService jwtService;
@@ -41,6 +41,7 @@ class JwtServiceTest {
 
     @Test
     void isTokenValid_randomString_returnsFalse() {
+
         assertThat(jwtService.isTokenValid("not.a.valid.token")).isFalse();
     }
 
