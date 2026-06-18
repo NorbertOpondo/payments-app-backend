@@ -29,7 +29,7 @@ sms:
     fixed-delay: 1800000
 
 jwt:
-  secret: fasd6uikb3298iohjnfasd7ewrbdsfut723qsakjmdr
+  secret: ${JWT_SECRET}
   expiration-ms: 86400000  # 24 hours
 
 payment:

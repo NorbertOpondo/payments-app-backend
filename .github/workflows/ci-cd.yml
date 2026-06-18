@@ -1,0 +1,51 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # ── Stage 1: Unit tests ──────────────────────────────────────────────────────
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          cache: maven         # caches ~/.m2 between runs
+
+      - name: Run tests
+        run: ./mvnw test
+
+      - name: Upload test reports
+        if: failure()          # only upload on failure to save storage
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+
+  # ── Stage 2: Deploy to Railway ───────────────────────────────────────────────
+  deploy:
+    name: Deploy to Railway
+    needs: test                # only runs if tests pass
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'   # skip on pull requests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy
+        run: railway up --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

@@ -1,0 +1,27 @@
+services:
+  payments:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Twilio — required; set values in .env or export in your shell
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:++254714851234}
+
+      # JWT — override the default secret in production
+      JWT_SECRET: ${JWT_SECRET:-fasd6uikb3298iohjnfasd7ewrbdsfut723qsakjmdr}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+
+      # Spring overrides (optional)
+      SPRING_JPA_SHOW_SQL: "false"
+    env_file:
+      - path: .env
+        required: false
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
