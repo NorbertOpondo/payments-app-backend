@@ -1,8 +1,8 @@
 package com.app.payments.services;
 
-import com.app.payments.dto.PaymentRequest;
-import com.app.payments.dto.PaymentResponse;
-import com.app.payments.dto.WebhookRequest;
+import com.app.payments.controller.dto.PaymentRequest;
+import com.app.payments.controller.dto.PaymentResponse;
+import com.app.payments.controller.dto.WebhookRequest;
 
 import java.util.List;
 

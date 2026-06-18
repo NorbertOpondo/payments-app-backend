@@ -1,6 +1,6 @@
 package com.app.payments.exceptions;
 
-import com.app.payments.dto.ApiResponse;
+import com.app.payments.controller.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;

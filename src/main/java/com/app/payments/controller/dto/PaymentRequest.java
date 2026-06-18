@@ -1,4 +1,4 @@
-package com.app.payments.dto;
+package com.app.payments.controller.dto;
 
 import com.app.payments.model.PaymentMethod;
 import jakarta.validation.constraints.DecimalMin;

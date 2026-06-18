@@ -1,8 +1,8 @@
 package com.app.payments.services.impl;
 
-import com.app.payments.dto.PaymentRequest;
-import com.app.payments.dto.PaymentResponse;
-import com.app.payments.dto.WebhookRequest;
+import com.app.payments.controller.dto.PaymentRequest;
+import com.app.payments.controller.dto.PaymentResponse;
+import com.app.payments.controller.dto.WebhookRequest;
 import com.app.payments.integrations.PaymentGatewayClient;
 import com.app.payments.integrations.dto.GatewayRequest;
 import com.app.payments.integrations.dto.GatewayResponse;
@@ -13,6 +13,9 @@ import com.app.payments.model.TransactionStatus;
 import com.app.payments.repositories.PaymentRepository;
 import com.app.payments.services.NotificationService;
 import com.app.payments.services.PaymentService;
+import com.app.payments.utils.MaskingUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -48,7 +51,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public PaymentResponse initiatePayment(PaymentRequest request) {
-        log.info("Initiating MPESA Payment : {}", request.getPhoneNumber()); //todo Concat
+        log.info("Initiating MPESA Payment : {}", MaskingUtils.maskPhone(request.getPhoneNumber()));
         Transaction transaction = paymentRepository.save(Transaction.builder()
                 .amount(request.getAmount())
                 .phoneNumber(request.getPhoneNumber())
@@ -68,6 +71,10 @@ public class PaymentServiceImpl implements PaymentService {
 
         log.info("new payment status : {}", gatewayResponse.getStatus());
         transaction.setStatus(gatewayResponse.getStatus());
+        if (gatewayResponse.getStatus() == TransactionStatus.COMPLETED
+                && request.getPaymentMethod() == PaymentMethod.CARD) {
+            transaction.setReceiptNumber(MaskingUtils.generateReceiptNumber("CRD"));
+        }
         Transaction savedTransaction = paymentRepository.save(transaction);
 
         notificationService.notifyPaymentStatusChange(savedTransaction);
@@ -91,6 +98,15 @@ public class PaymentServiceImpl implements PaymentService {
         Transaction transaction = paymentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Transaction not found: " + id));
         transaction.setStatus(webhookRequest.getStatus());
+        if (webhookRequest.getMpesaReceiptNumber() != null) {
+            transaction.setReceiptNumber(webhookRequest.getMpesaReceiptNumber());
+        }
+        try {
+            ObjectMapper om = new ObjectMapper();
+            transaction.setMetadata(om.writeValueAsString(webhookRequest));
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize webhook metadata for transaction {}", id, e);
+        }
         Transaction saved = paymentRepository.save(transaction);
 
         notificationService.notifyPaymentStatusChange(saved);
@@ -113,6 +129,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .paymentMethod(transaction.getPaymentMethod())
                 .status(transaction.getStatus())
                 .createdAt(transaction.getCreatedAt())
+                .receiptNumber(transaction.getReceiptNumber())
+                .metadata(transaction.getMetadata())
                 .build();
     }
 }

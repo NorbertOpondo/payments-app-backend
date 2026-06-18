@@ -38,6 +38,11 @@ public class Transaction {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    private String receiptNumber;
+
+    @Column(columnDefinition = "TEXT")
+    private String metadata;
+
     @PrePersist
     void onPersist() {
         createdAt = LocalDateTime.now();

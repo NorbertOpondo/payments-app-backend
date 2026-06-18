@@ -1,4 +1,4 @@
-package com.app.payments.dto;
+package com.app.payments.controller.dto;
 
 import com.app.payments.model.PaymentMethod;
 import com.app.payments.model.TransactionStatus;
@@ -17,4 +17,6 @@ public class PaymentResponse {
     private PaymentMethod paymentMethod;
     private TransactionStatus status;
     private LocalDateTime createdAt;
+    private String receiptNumber;
+    private String metadata;
 }

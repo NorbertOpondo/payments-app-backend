@@ -1,9 +1,9 @@
 package com.app.payments.controller;
 
-import com.app.payments.dto.ApiResponse;
-import com.app.payments.dto.PaymentRequest;
-import com.app.payments.dto.PaymentResponse;
-import com.app.payments.dto.WebhookRequest;
+import com.app.payments.controller.dto.ApiResponse;
+import com.app.payments.controller.dto.PaymentRequest;
+import com.app.payments.controller.dto.PaymentResponse;
+import com.app.payments.controller.dto.WebhookRequest;
 import com.app.payments.services.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
