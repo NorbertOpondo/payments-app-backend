@@ -28,6 +28,10 @@ sms:
   retry-job:
     fixed-delay: 1800000
 
+jwt:
+  secret: fasd6uikb3298iohjnfasd7ewrbdsfut723qsakjmdr
+  expiration-ms: 86400000  # 24 hours
+
 payment:
   gateway:
     connect-timeout: 5000

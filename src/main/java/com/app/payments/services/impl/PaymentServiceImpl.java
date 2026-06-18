@@ -13,6 +13,7 @@ import com.app.payments.model.TransactionStatus;
 import com.app.payments.repositories.PaymentRepository;
 import com.app.payments.services.NotificationService;
 import com.app.payments.services.PaymentService;
+import com.app.payments.exceptions.PaymentException;
 import com.app.payments.utils.MaskingUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -50,12 +52,22 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public PaymentResponse initiatePayment(PaymentRequest request) {
+    public PaymentResponse initiatePayment(PaymentRequest request, String idempotencyKey) {
+        if (idempotencyKey != null) {
+            Optional<Transaction> existing = paymentRepository.findByIdempotencyKey(idempotencyKey);
+            if (existing.isPresent()) {
+                log.info("Duplicate request detected for idempotency key {}, returning existing transaction {}",
+                        idempotencyKey, existing.get().getId());
+                return toResponse(existing.get());
+            }
+        }
+
         log.info("Initiating MPESA Payment : {}", MaskingUtils.maskPhone(request.getPhoneNumber()));
         Transaction transaction = paymentRepository.save(Transaction.builder()
                 .amount(request.getAmount())
                 .phoneNumber(request.getPhoneNumber())
                 .paymentMethod(request.getPaymentMethod())
+                .idempotencyKey(idempotencyKey)
                 .status(TransactionStatus.INITIATED)
                 .build());
 
@@ -90,13 +102,13 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentResponse getPaymentStatus(String id) {
         return paymentRepository.findById(id)
                 .map(this::toResponse)
-                .orElseThrow(() -> new IllegalArgumentException("Transaction not found: " + id));
+                .orElseThrow(() -> PaymentException.notFound("Transaction not found: " + id));
     }
 
     @Override
     public PaymentResponse simulateWebhook(String id, WebhookRequest webhookRequest) {
         Transaction transaction = paymentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Transaction not found: " + id));
+                .orElseThrow(() -> PaymentException.notFound("Transaction not found: " + id));
         transaction.setStatus(webhookRequest.getStatus());
         if (webhookRequest.getMpesaReceiptNumber() != null) {
             transaction.setReceiptNumber(webhookRequest.getMpesaReceiptNumber());

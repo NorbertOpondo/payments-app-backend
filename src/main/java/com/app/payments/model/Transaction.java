@@ -38,6 +38,9 @@ public class Transaction {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(unique = true)
+    private String idempotencyKey;
+
     private String receiptNumber;
 
     @Column(columnDefinition = "TEXT")
