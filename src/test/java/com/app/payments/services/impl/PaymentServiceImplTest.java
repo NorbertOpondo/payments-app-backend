@@ -6,7 +6,8 @@ import com.app.payments.controller.dto.WebhookRequest;
 import com.app.payments.exceptions.PaymentException;
 import com.app.payments.integrations.PaymentGatewayClient;
 import com.app.payments.integrations.dto.GatewayResponse;
-import com.app.payments.integrations.impl.MpesaCallbackSimulator;
+import com.app.payments.integrations.impl.AsyncGatewayProcessor;
+import com.app.payments.integrations.dto.GatewayRequest;
 import com.app.payments.model.PaymentMethod;
 import com.app.payments.model.Transaction;
 import com.app.payments.model.TransactionStatus;
@@ -27,6 +28,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -35,8 +37,7 @@ class PaymentServiceImplTest {
 
     @Mock private PaymentRepository paymentRepository;
     @Mock private NotificationService notificationService;
-    @Mock private MpesaCallbackSimulator mpesaCallbackSimulator;
-    @Mock private PaymentGatewayClient mpesaGatewayClient;
+    @Mock private AsyncGatewayProcessor asyncGatewayProcessor;
     @Mock private PaymentGatewayClient cardGatewayClient;
 
     private PaymentServiceImpl paymentService;
@@ -46,8 +47,7 @@ class PaymentServiceImplTest {
         paymentService = new PaymentServiceImpl(
                 paymentRepository,
                 notificationService,
-                mpesaCallbackSimulator,
-                mpesaGatewayClient,
+                asyncGatewayProcessor,
                 cardGatewayClient
         );
     }
@@ -93,17 +93,19 @@ class PaymentServiceImplTest {
     // ── initiatePayment ────────────────────────────────────────────────────────
 
     @Test
-    void initiatePayment_mpesa_sendsStkPushAndTriggersSimulator() {
+    void initiatePayment_mpesa_dispatchesAsyncAndReturnsProcessing() {
         mockSaveWithIdGeneration();
-        given(mpesaGatewayClient.processPayment(any()))
-                .willReturn(GatewayResponse.builder().status(TransactionStatus.STK_PUSH_SENT).build());
 
         PaymentResponse response = paymentService.initiatePayment(mpesaRequest(), null);
 
-        assertThat(response.getStatus()).isEqualTo(TransactionStatus.STK_PUSH_SENT);
-        verify(mpesaCallbackSimulator).simulate("tx-123");
-        verify(notificationService).notifyPaymentStatusChange(any());
-        verify(paymentRepository, times(3)).save(any());
+        // M-Pesa is fire-and-forget: caller gets PROCESSING immediately
+        assertThat(response.getStatus()).isEqualTo(TransactionStatus.PROCESSING);
+        verify(asyncGatewayProcessor).processMpesaAsync(eq("tx-123"), any());
+        // Only INITIATED + PROCESSING saves happen synchronously
+        verify(paymentRepository, times(2)).save(any());
+        // Notification is sent inside AsyncGatewayProcessor, not here
+        verifyNoInteractions(notificationService);
+        verifyNoInteractions(cardGatewayClient);
     }
 
     @Test
@@ -147,8 +149,6 @@ class PaymentServiceImplTest {
     @Test
     void initiatePayment_nullIdempotencyKey_skipsIdempotencyCheck() {
         mockSaveWithIdGeneration();
-        given(mpesaGatewayClient.processPayment(any()))
-                .willReturn(GatewayResponse.builder().status(TransactionStatus.STK_PUSH_SENT).build());
 
         paymentService.initiatePayment(mpesaRequest(), null);
 
@@ -158,8 +158,6 @@ class PaymentServiceImplTest {
     @Test
     void initiatePayment_storesIdempotencyKeyOnNewTransaction() {
         mockSaveWithIdGeneration();
-        given(mpesaGatewayClient.processPayment(any()))
-                .willReturn(GatewayResponse.builder().status(TransactionStatus.STK_PUSH_SENT).build());
 
         paymentService.initiatePayment(mpesaRequest(), "unique-key-xyz");
 
