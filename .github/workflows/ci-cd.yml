@@ -43,10 +43,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Railway CLI
-        run: npm install -g @railway/cli
+        # Added @latest to prevent breaking API changes from causing 404s
+        run: npm install -g @railway/cli@latest
 
       - name: Deploy
-        run: railway up --service "payments-app" --detach
+        # Added the --environment flag to tell the CLI exactly where to upload
+        run: railway up --service "payments-app" --environment "production" --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
