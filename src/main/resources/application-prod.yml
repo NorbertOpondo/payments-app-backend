@@ -1,0 +1,19 @@
+spring:
+  h2:
+    console:
+      enabled: false
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+app:
+  auth:
+    username: ${AUTH_USERNAME}
+    password: ${AUTH_PASSWORD}
+
+payment:
+  gateway:
+    mpesa:
+      base-url: https://api.safaricom.co.ke

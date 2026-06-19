@@ -32,6 +32,14 @@ jwt:
   secret: ${JWT_SECRET}
   expiration-ms: 86400000  # 24 hours
 
+app:
+  auth:
+    username: johndoe
+    password: johndoe123
+
+cors:
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
+
 payment:
   gateway:
     connect-timeout: 5000
