@@ -30,7 +30,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> login(@RequestBody LoginRequest request) {
         if (!allowedUsername.equals(request.getUsername()) || !allowedPassword.equals(request.getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Invalid username or password"));
+                    .body(ApiResponse.<AuthResponse>builder()
+                            .status(401)
+                            .description("Unauthorized")
+                            .errors("Invalid username or password")
+                            .build());
         }
         String token = jwtService.generateToken(request.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
