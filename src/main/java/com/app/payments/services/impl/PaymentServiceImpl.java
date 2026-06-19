@@ -106,8 +106,8 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Async
     public PaymentResponse simulateWebhook(String id, WebhookRequest webhookRequest) {
+        // TODO. Can proces this in async to avoid blocking webhook endpoint
         Transaction transaction = paymentRepository.findById(id)
                 .orElseThrow(() -> PaymentException.notFound("Transaction not found: " + id));
         transaction.setStatus(webhookRequest.getStatus());
