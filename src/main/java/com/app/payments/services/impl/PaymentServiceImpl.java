@@ -106,6 +106,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Async
     public PaymentResponse simulateWebhook(String id, WebhookRequest webhookRequest) {
         Transaction transaction = paymentRepository.findById(id)
                 .orElseThrow(() -> PaymentException.notFound("Transaction not found: " + id));
