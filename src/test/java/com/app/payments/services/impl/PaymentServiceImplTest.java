@@ -7,7 +7,6 @@ import com.app.payments.exceptions.PaymentException;
 import com.app.payments.integrations.PaymentGatewayClient;
 import com.app.payments.integrations.dto.GatewayResponse;
 import com.app.payments.integrations.impl.AsyncGatewayProcessor;
-import com.app.payments.integrations.dto.GatewayRequest;
 import com.app.payments.model.PaymentMethod;
 import com.app.payments.model.Transaction;
 import com.app.payments.model.TransactionStatus;
@@ -118,7 +117,7 @@ class PaymentServiceImplTest {
 
         assertThat(response.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
         assertThat(response.getReceiptNumber()).startsWith("CRD");
-        verifyNoInteractions(mpesaCallbackSimulator);
+        verifyNoInteractions(asyncGatewayProcessor);
     }
 
     @Test
@@ -143,7 +142,7 @@ class PaymentServiceImplTest {
         assertThat(response.getId()).isEqualTo("tx-123");
         assertThat(response.getStatus()).isEqualTo(TransactionStatus.STK_PUSH_SENT);
         verify(paymentRepository, never()).save(any());
-        verifyNoInteractions(mpesaGatewayClient, cardGatewayClient);
+        verifyNoInteractions(asyncGatewayProcessor, cardGatewayClient);
     }
 
     @Test
