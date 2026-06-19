@@ -43,12 +43,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Railway CLI
-        # Added @latest to prevent breaking API changes from causing 404s
         run: npm install -g @railway/cli@latest
 
       - name: Deploy
-        # Added the --environment flag to tell the CLI exactly where to upload
-        run: railway up --service "payments-app" --environment "production" --detach
+        # REMOVED --environment flag. The token already handles the target environment.
+        # ADDED --ci flag to suppress interactive prompts in GitHub Actions.
+        run: railway up --service "payments-app" --ci --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          # REMOVED RAILWAY_PROJECT_ID secret. It is not used when RAILWAY_TOKEN is present.
+
