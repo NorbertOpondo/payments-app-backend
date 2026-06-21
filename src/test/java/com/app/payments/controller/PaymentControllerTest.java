@@ -9,6 +9,7 @@ import com.app.payments.model.TransactionStatus;
 import com.app.payments.security.JwtService;
 import com.app.payments.services.PaymentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -62,6 +63,7 @@ class PaymentControllerTest {
         mockMvc.perform(post("/api/v1/payments")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.id").value("tx-123"))
