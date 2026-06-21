@@ -3,9 +3,6 @@ package com.app.payments.integrations.impl;
 import com.app.payments.integrations.SmsService;
 import com.app.payments.model.SmsRecord;
 import com.app.payments.repositories.SmsRepository;
-import com.twilio.Twilio;
-import com.twilio.rest.api.v2010.account.Message;
-import com.twilio.type.PhoneNumber;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.retry.Retry;
@@ -13,6 +10,8 @@ import io.github.resilience4j.retry.RetryRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
@@ -29,8 +28,8 @@ public class TwilioSmsService implements SmsService {
             SmsRepository smsRepository,
             RetryRegistry retryRegistry,
             CircuitBreakerRegistry circuitBreakerRegistry,
-            @Value("${twilio.account-sid}") String accountSid,
-            @Value("${twilio.auth-token}") String authToken,
+            @Value("${twilio.account-sid:mock}") String accountSid,
+            @Value("${twilio.auth-token:mock}") String authToken,
             @Value("${twilio.from-number}") String fromNumber) {
         this.smsRepository = smsRepository;
         this.fromNumber = fromNumber;
@@ -40,7 +39,7 @@ public class TwilioSmsService implements SmsService {
         this.circuitBreaker = circuitBreakerRegistry.circuitBreaker("sms");
         this.circuitBreaker.getEventPublisher().onStateTransition(event ->
                 log.warn("SMS circuit breaker state: {} → {}", event.getStateTransition().getFromState(), event.getStateTransition().getToState()));
-        Twilio.init(accountSid, authToken);
+        // Real: Twilio.init(accountSid, authToken);
     }
 
     @Override
@@ -56,21 +55,36 @@ public class TwilioSmsService implements SmsService {
         try {
             decorated.run();
             smsRecord.setStatus(200);
-            log.info("SMS sent to {} for transaction {}", smsRecord.getPhoneNumber(), smsRecord.getTransactionId());
+            log.info("SMS delivered to {} for transaction {}", smsRecord.getPhoneNumber(), smsRecord.getTransactionId());
         } catch (Exception ex) {
-            log.error("SMS failed for transaction {} after {} attempt(s): {}",
-                    smsRecord.getTransactionId(), smsRecord.getRetryCount(), ex.getMessage());
-            smsRecord.setStatus(smsRecord.getRetryCount() >= MAX_RETRY_COUNT ? 500 : 400);
+            boolean terminal = smsRecord.getRetryCount() >= MAX_RETRY_COUNT;
+            smsRecord.setStatus(terminal ? 500 : 400);
+            if (terminal) {
+                log.error("SMS permanently failed for transaction {} after {} attempt(s) — giving up: {}",
+                        smsRecord.getTransactionId(), smsRecord.getRetryCount(), ex.getMessage());
+            } else {
+                log.warn("SMS failed for transaction {} (attempt {}/{}) — will retry: {}",
+                        smsRecord.getTransactionId(), smsRecord.getRetryCount(), MAX_RETRY_COUNT, ex.getMessage());
+            }
         }
 
         smsRepository.save(smsRecord);
     }
 
     private void doSend(SmsRecord smsRecord) {
-        Message.creator(
-                new PhoneNumber(smsRecord.getPhoneNumber()),
-                new PhoneNumber(fromNumber),
-                smsRecord.getMessage()
-        ).create();
+        // Simulate Twilio API call — 20% failure rate to exercise retry/circuit-breaker paths
+        if (ThreadLocalRandom.current().nextInt(100) < 20) {
+            throw new RuntimeException("Simulated Twilio provider error (transient)");
+        }
+
+        // Real: Message.creator(new PhoneNumber(smsRecord.getPhoneNumber()),
+        //           new PhoneNumber(fromNumber), smsRecord.getMessage()).create();
+
+        System.out.printf("%n┌─ SMS ──────────────────────────────────────────┐%n");
+        System.out.printf("│ From : %s%n", fromNumber);
+        System.out.printf("│ To   : %s%n", smsRecord.getPhoneNumber());
+        System.out.printf("│ Msg  : %s%n", smsRecord.getMessage());
+        System.out.printf("│ TxID : %s%n", smsRecord.getTransactionId());
+        System.out.printf("└────────────────────────────────────────────────┘%n%n");
     }
 }

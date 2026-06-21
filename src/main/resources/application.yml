@@ -17,11 +17,11 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
 twilio:
-  account-sid: ${TWILIO_ACCOUNT_SID}
-  auth-token: ${TWILIO_AUTH_TOKEN}
+  account-sid: ${TWILIO_ACCOUNT_SID:mock}
+  auth-token: ${TWILIO_AUTH_TOKEN:mock}
   from-number: ${TWILIO_FROM_NUMBER:+254714851234}
 
 sms:

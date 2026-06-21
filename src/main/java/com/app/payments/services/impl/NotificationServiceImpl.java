@@ -1,6 +1,5 @@
 package com.app.payments.services.impl;
 
-import com.app.payments.integrations.SmsService;
 import com.app.payments.model.SmsRecord;
 import com.app.payments.model.Transaction;
 import com.app.payments.repositories.SmsRepository;
@@ -16,14 +15,11 @@ import org.springframework.stereotype.Service;
 public class NotificationServiceImpl implements NotificationService {
 
     private final SmsRepository smsRepository;
-    private final SmsService smsService;
+    private final SmsQueue smsQueue;
 
     @Async("smsExecutor")
     @Override
     public void notifyPaymentStatusChange(Transaction transaction) {
-        log.info("Sending SMS notification for transaction {} — status: {}",
-                transaction.getId(), transaction.getStatus());
-
         SmsRecord smsRecord = smsRepository.save(SmsRecord.builder()
                 .phoneNumber(transaction.getPhoneNumber())
                 .message(buildMessage(transaction))
@@ -32,7 +28,9 @@ public class NotificationServiceImpl implements NotificationService {
                 .retryCount(0)
                 .build());
 
-        smsService.send(smsRecord);
+        smsQueue.enqueue(smsRecord);
+        log.info("SMS queued for transaction {} — status: {} (queue depth: {})",
+                transaction.getId(), transaction.getStatus(), smsQueue.size());
     }
 
     private String buildMessage(Transaction transaction) {
