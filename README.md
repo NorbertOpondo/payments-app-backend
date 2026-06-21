@@ -5,10 +5,10 @@ A demo REST API for processing payments via M-Pesa and Card, built with Spring B
 ## Features
 
 - JWT-based authentication
-- Payment initiation via M-Pesa (STK push) or Card
+- Payment initiation via M-Pesa (STK push, async) or Card (synchronous)
 - Idempotent payment requests
 - Webhook simulation for payment callbacks
-- SMS notifications via Twilio with automatic retry
+- SMS notifications via an in-memory queue backed by a mocked Twilio provider, with automatic retry and circuit breaking
 - Transaction history
 - H2 in-memory database
 
@@ -33,13 +33,15 @@ A demo REST API for processing payments via M-Pesa and Card, built with Spring B
 
 ### Environment Variables
 
-| Variable | Description |
-|---|---|
-| `JWT_SECRET` | Secret key for signing JWTs (min 32 chars) |
-| `TWILIO_ACCOUNT_SID` | Twilio account SID |
-| `TWILIO_AUTH_TOKEN` | Twilio auth token |
-| `TWILIO_FROM_NUMBER` | Twilio sender number (default: `+254714851234`) |
-| `ALLOWED_ORIGINS` | CORS allowed origins (default: `http://localhost:5173`) |
+| Variable | Required | Description |
+|---|---|---|
+| `JWT_SECRET` | Yes | Secret key for signing JWTs (min 32 chars) |
+| `TWILIO_ACCOUNT_SID` | No | Twilio account SID (defaults to `mock` — SMS is simulated locally) |
+| `TWILIO_AUTH_TOKEN` | No | Twilio auth token (defaults to `mock`) |
+| `TWILIO_FROM_NUMBER` | No | Twilio sender number (default: `+254714851234`) |
+| `ALLOWED_ORIGINS` | No | CORS allowed origins (default: `http://localhost:5173`) |
+| `AUTH_USERNAME` | Prod only | Login username (overrides the hardcoded default) |
+| `AUTH_PASSWORD` | Prod only | Login password (overrides the hardcoded default) |
 
 Copy `.env.example` to `.env` and fill in the values, or export them directly.
 
@@ -105,6 +107,10 @@ Idempotency-Key: <optional-unique-key>
 }
 ```
 `paymentMethod` accepts `MPESA` or `CARD`.
+
+**M-Pesa** returns `PROCESSING` immediately — the STK push is dispatched asynchronously. Poll `GET /api/v1/payments/{id}` until the status reaches `COMPLETED` or `FAILED`.
+
+**Card** returns a final status (`COMPLETED` or `FAILED`) synchronously in the same response.
 
 #### Get payment status
 ```
