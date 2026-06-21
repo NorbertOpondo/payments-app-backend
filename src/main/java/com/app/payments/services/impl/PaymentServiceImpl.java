@@ -68,8 +68,7 @@ public class PaymentServiceImpl implements PaymentService {
         Transaction saved = paymentRepository.save(transaction);
 
         if (request.getPaymentMethod() == PaymentMethod.MPESA) {
-            // Fire and forget — M-Pesa is async by nature (STK push → webhook).
-            // The caller gets PROCESSING immediately; status updates arrive via the callback.
+            // Fire and forget — M-Pesa is async by nature (STK push then we wait for callback).
             asyncGatewayProcessor.processMpesaAsync(saved.getId(), GatewayRequest.builder()
                     .referenceId(saved.getId())
                     .amount(saved.getAmount())

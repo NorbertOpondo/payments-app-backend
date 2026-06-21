@@ -39,7 +39,6 @@ public class TwilioSmsService implements SmsService {
         this.circuitBreaker = circuitBreakerRegistry.circuitBreaker("sms");
         this.circuitBreaker.getEventPublisher().onStateTransition(event ->
                 log.warn("SMS circuit breaker state: {} → {}", event.getStateTransition().getFromState(), event.getStateTransition().getToState()));
-        // Real: Twilio.init(accountSid, authToken);
     }
 
     @Override
@@ -72,19 +71,12 @@ public class TwilioSmsService implements SmsService {
     }
 
     private void doSend(SmsRecord smsRecord) {
-        // Simulate Twilio API call — 20% failure rate to exercise retry/circuit-breaker paths
+        // Simulate Twilio API call — 20% failure rate to triger retry and circuit-breaker
         if (ThreadLocalRandom.current().nextInt(100) < 20) {
             throw new RuntimeException("Simulated Twilio provider error (transient)");
         }
 
-        // Real: Message.creator(new PhoneNumber(smsRecord.getPhoneNumber()),
-        //           new PhoneNumber(fromNumber), smsRecord.getMessage()).create();
-
-        System.out.printf("%n┌─ SMS ──────────────────────────────────────────┐%n");
-        System.out.printf("│ From : %s%n", fromNumber);
-        System.out.printf("│ To   : %s%n", smsRecord.getPhoneNumber());
-        System.out.printf("│ Msg  : %s%n", smsRecord.getMessage());
-        System.out.printf("│ TxID : %s%n", smsRecord.getTransactionId());
-        System.out.printf("└────────────────────────────────────────────────┘%n%n");
+        log.info("[SMS] from={} to={} txId={} message=\"{}\"",
+                fromNumber, smsRecord.getPhoneNumber(), smsRecord.getTransactionId(), smsRecord.getMessage());
     }
 }
