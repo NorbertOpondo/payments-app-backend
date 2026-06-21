@@ -126,7 +126,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public List<PaymentResponse> getTransactionHistory() {
-        return paymentRepository.findAll().stream()
+        return paymentRepository.findTop12ByOrderByCreatedAtDesc().stream()
                 .map(this::toResponse)
                 .toList();
     }

@@ -1,19 +1,44 @@
 spring:
-  h2:
-    console:
-      enabled: false
+  application:
+    name: payments
+  datasource:
+    url: jdbc:h2:mem:payments_schema;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
     properties:
       hibernate:
-        format_sql: false
+        format_sql: true
+
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID}
+  auth-token: ${TWILIO_AUTH_TOKEN}
+  from-number: ${TWILIO_FROM_NUMBER:+254714851234}
+
+sms:
+  retry-job:
+    fixed-delay: 1800000
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: 86400000  # 24 hours
 
 app:
   auth:
     username: ${AUTH_USERNAME}
     password: ${AUTH_PASSWORD}
 
+cors:
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
+
 payment:
   gateway:
+    connect-timeout: 5000
+    read-timeout: 10000
     mpesa:
       base-url: https://api.safaricom.co.ke
+    card:
+      base-url: https://api.stripe.com
