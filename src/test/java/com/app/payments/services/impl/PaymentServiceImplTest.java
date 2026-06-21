@@ -257,7 +257,7 @@ class PaymentServiceImplTest {
 
     @Test
     void getTransactionHistory_returnsAllMappedResponses() {
-        given(paymentRepository.findAll()).willReturn(List.of(
+        given(paymentRepository.findTop12ByOrderByCreatedAtDesc()).willReturn(List.of(
                 buildTransaction(TransactionStatus.COMPLETED),
                 buildTransaction(TransactionStatus.FAILED)
         ));
@@ -271,7 +271,7 @@ class PaymentServiceImplTest {
 
     @Test
     void getTransactionHistory_empty_returnsEmptyList() {
-        given(paymentRepository.findAll()).willReturn(List.of());
+        given(paymentRepository.findTop12ByOrderByCreatedAtDesc()).willReturn(List.of());
 
         assertThat(paymentService.getTransactionHistory()).isEmpty();
     }
