@@ -126,6 +126,7 @@ class PaymentControllerTest {
         mockMvc.perform(post("/api/v1/payments")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.errors").value("Payment initiation rate limit exceeded. Please try again in a moment."));
