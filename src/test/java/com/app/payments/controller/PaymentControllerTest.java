@@ -9,7 +9,9 @@ import com.app.payments.model.TransactionStatus;
 import com.app.payments.security.JwtService;
 import com.app.payments.services.PaymentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.ratelimiter.RateLimiter;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -35,6 +37,12 @@ class PaymentControllerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     @MockitoBean PaymentService paymentService;
     @MockitoBean JwtService jwtService;
+    @MockitoBean RateLimiter rateLimiter;
+
+    @BeforeEach
+    void allowRequests() {
+        given(rateLimiter.acquirePermission()).willReturn(true);
+    }
 
     private PaymentResponse paymentResponse(TransactionStatus status) {
         return PaymentResponse.builder()
@@ -103,6 +111,24 @@ class PaymentControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists());
+    }
+
+    @Test
+    @WithMockUser
+    void initiatePayment_rateLimitExceeded_returns429() throws Exception {
+        given(rateLimiter.acquirePermission()).willReturn(false);
+
+        PaymentRequest request = new PaymentRequest();
+        request.setAmount(new BigDecimal("500.00"));
+        request.setPhoneNumber("+254712345678");
+        request.setPaymentMethod(PaymentMethod.MPESA);
+
+        mockMvc.perform(post("/api/v1/payments")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.errors").value("Payment initiation rate limit exceeded. Please try again in a moment."));
     }
 
     @Test
