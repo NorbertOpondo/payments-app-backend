@@ -68,7 +68,7 @@ public class PaymentServiceImpl implements PaymentService {
         Transaction saved = paymentRepository.save(transaction);
 
         if (request.getPaymentMethod() == PaymentMethod.MPESA) {
-            // Fire and forget — M-Pesa is async by nature (STK push then we wait for callback).
+            // Fire and forget. M-Pesa is async by nature (STK push then we wait for callback).
             asyncGatewayProcessor.processMpesaAsync(saved.getId(), GatewayRequest.builder()
                     .referenceId(saved.getId())
                     .amount(saved.getAmount())
@@ -77,7 +77,7 @@ public class PaymentServiceImpl implements PaymentService {
             return toResponse(saved);
         }
 
-        // Card: synchronous — gateway responds with a final status in one call.
+        // Card: is synchronous. gateway responds with a final status in one call.
         GatewayResponse gatewayResponse = cardGatewayClient.processPayment(GatewayRequest.builder()
                 .referenceId(saved.getId())
                 .amount(saved.getAmount())

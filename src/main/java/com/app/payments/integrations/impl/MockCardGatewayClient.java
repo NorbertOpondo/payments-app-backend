@@ -58,7 +58,6 @@ public class MockCardGatewayClient implements PaymentGatewayClient {
             throw new RuntimeException("Simulated card gateway timeout");
         }
 
-        // Real implementation: restClient.post().uri("/v1/charges").body(request).retrieve().body(GatewayResponse.class)
         return GatewayResponse.builder()
                 .referenceId(request.getReferenceId())
                 .status(TransactionStatus.COMPLETED)
