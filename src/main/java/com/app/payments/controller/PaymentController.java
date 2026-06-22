@@ -5,6 +5,7 @@ import com.app.payments.controller.dto.PaymentRequest;
 import com.app.payments.controller.dto.PaymentResponse;
 import com.app.payments.controller.dto.WebhookRequest;
 import com.app.payments.services.PaymentService;
+import io.github.resilience4j.ratelimiter.RateLimiter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,11 +20,20 @@ import java.util.List;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final RateLimiter rateLimiter;
 
     @PostMapping
     public ResponseEntity<ApiResponse<PaymentResponse>> initiatePayment(
             @Valid @RequestBody PaymentRequest request,
             @RequestHeader(value = "Idempotency-Key") String idempotencyKey) {
+        if (!rateLimiter.acquirePermission()) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(ApiResponse.<PaymentResponse>builder()
+                            .status(429)
+                            .description("Too many requests")
+                            .errors("Payment initiation rate limit exceeded. Please try again in a moment.")
+                            .build());
+        }
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created(paymentService.initiatePayment(request, idempotencyKey)));
     }
